@@ -1,4 +1,9 @@
 {
+  "scripts": {
+  "start": "node index.js",
+  "build": "echo 'No build step required'"
+}
+,
   "dependencies": {
     "bootstrap": "^5.3.8",
     "cors": "^2.8.6",
