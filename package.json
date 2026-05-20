@@ -6,6 +6,7 @@
 ,
   "dependencies": {
     "bootstrap": "^5.3.8",
+    "axios": "^1.7.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "mongoose": "^9.6.2",
