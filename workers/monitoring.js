@@ -1,0 +1,95 @@
+const { default: axios } = require("axios")
+const Registration_model = require('../database/registration');
+const Monitor_model = require('../database/monitor');
+const { sendMail } = require('./emailer');
+
+// Store intervalIds for each monitor (monitorId -> intervalId)
+let activeMonitors = {};
+
+let monitor = async (monitorId, url, keyword, email) => {
+  try {
+    const res = await axios.get(`${url}`);
+    const data = res.data;
+
+    if (data.includes(keyword)) {
+      console.log("key found")
+      let emailstatus = await sendMail(email, keyword);
+      if (emailstatus) {
+        const notificationRecord = {
+          sentAt: new Date(),
+          message: `Keyword found: ${keyword}`,
+          keyword,
+          url,
+          emailTo: email,
+          emailSubject: `Keyword found: ${keyword}`
+        };
+
+        const monitor = await Monitor_model.findByIdAndUpdate(monitorId, {
+          isActive: false,
+          $push: { notifications: notificationRecord }
+        }, { new: true });
+        console.log(`Monitor ${monitorId} marked inactive after notification`);
+        stopMonitoring(monitorId);
+        
+        // Log activity for notification
+        const Activity_model = require('../database/activity');
+        await Activity_model.create({
+          userId: monitor.userId,
+          monitorId: monitorId,
+          websiteName: monitor.name,
+          action: 'notification_sent',
+          description: `Notification sent for: ${monitor.name} - Found keyword: ${keyword}`,
+          details: { keyword, url, message: notificationRecord.message, emailTo: email }
+        });
+      }
+    } else {
+      console.log("Results are not out yet")
+    }
+  } catch (err) {
+    console.log("Error monitoring:", err.message);
+  }
+}
+
+function startMonitoring(monitorId, userId, url, keyword) {
+  // Stop if already monitoring this monitor
+  if (activeMonitors[monitorId]) {
+    console.log(`Monitor ${monitorId} already running`);
+    return;
+  }
+
+  Registration_model.findById(userId).then((user) => {
+    const email = user.email;
+    console.log(`Starting monitoring for ${monitorId}`);
+    
+    // Store intervalId mapped to monitorId
+    activeMonitors[monitorId] = setInterval(
+      () => monitor(monitorId, url, keyword, email), 
+      1000 * 20
+    );
+  }).catch((err) => console.log("Error fetching user:", err));
+}
+
+function stopMonitoring(monitorId) {
+  if (activeMonitors[monitorId]) {
+    console.log(`Stopping monitoring for ${monitorId}`);
+    clearInterval(activeMonitors[monitorId]);
+    delete activeMonitors[monitorId];
+  }
+}
+
+function stopAllMonitoring() {
+  Object.keys(activeMonitors).forEach(monitorId => {
+    stopMonitoring(monitorId);
+  });
+}
+
+function getActiveMonitors() {
+  return activeMonitors;
+}
+
+module.exports = {
+  startMonitoring,
+  stopMonitoring,
+  stopAllMonitoring,
+  getActiveMonitors
+};
