@@ -13,10 +13,13 @@ var app = express();
 
 app.use(express.json());
 app.use(
-  cors: {
-      origin: 'https://notify-friend.netlify.app', // You can restrict this in production
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
-    }
+  cors({
+    origin: [
+      'https://notify-friend.netlify.app'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true
+  })
 );
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
