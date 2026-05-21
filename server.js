@@ -17,7 +17,9 @@ app.use(express.json());
 app.use(
   cors({
     origin: [
-      'https://notify-friend.netlify.app'
+      'https://notify-friend.netlify.app',
+      "https://10.136.125.93:5173"
+      
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
